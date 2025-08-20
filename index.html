@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Share Location</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    button { padding: 0.75rem 1rem; border: none; border-radius: 6px; cursor: pointer; }
+    .primary { background: #2563eb; color: white; }
+    .ghost { background: #eee; }
+    #status { margin-top: 1rem; font-size: 0.9rem; }
+    .ok { color: green; }
+    .err { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Share Your Location</h1>
+  <p>
+    If you agree, this page will collect your approximate location using your browser’s
+    <code>navigator.geolocation</code> and send it securely to the site admin.
+    Your coordinates will <strong>not</strong> be displayed here.
+  </p>
+
+  <label>
+    <input type="checkbox" id="agree">
+    I consent to sharing my location with the site admin
+  </label>
+  <br><br>
+
+  <button id="share" class="primary">Share Location</button>
+  <button id="skip" class="ghost">No Thanks</button>
+
+  <p id="status"></p>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const shareBtn = document.getElementById('share');
+    const skipBtn = document.getElementById('skip');
+
+    function say(msg, cls = '') {
+      statusEl.textContent = msg;
+      statusEl.className = cls;
+    }
+
+    skipBtn.addEventListener('click', () => {
+      say('No location shared.');
+    });
+
+    shareBtn.addEventListener('click', () => {
+      const agreed = document.getElementById('agree').checked;
+      if (!agreed) {
+        say('Please tick the consent box first.', 'err');
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        say('Geolocation not supported by your browser.', 'err');
+        return;
+      }
+
+      say('Requesting your location…');
+
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const payload = {
+          lat: latitude,
+          lon: longitude,
+          accuracy,
+          at: new Date().toISOString(),
+          ua: navigator.userAgent
+        };
+
+        try {
+          const res = await fetch('/api/locations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) throw new Error('Server error');
+          say('Thanks! Your location was sent to the site admin.', 'ok');
+        } catch (err) {
+          console.error(err);
+          say('Failed to send location.', 'err');
+        }
+      }, err => {
+        if (err.code === err.PERMISSION_DENIED) {
+          say('Permission denied. No location shared.');
+        } else {
+          say('Could not get location.', 'err');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

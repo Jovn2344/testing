@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin – Collected Locations</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
+    th { background: #f3f3f3; }
+  </style>
+</head>
+<body>
+  <h1>Collected Locations</h1>
+  <button id="refresh">Refresh Data</button>
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Latitude</th>
+        <th>Longitude</th>
+        <th>Accuracy (m)</th>
+        <th>IP</th>
+        <th>User Agent</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+
+  <script>
+    const tbody = document.getElementById('table-body');
+    const refreshBtn = document.getElementById('refresh');
+
+    async function loadData() {
+      tbody.innerHTML = '<tr><td colspan="6">Loading…</td></tr>';
+      try {
+        const res = await fetch('/api/locations');
+        const data = await res.json();
+        tbody.innerHTML = '';
+        data.forEach(loc => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${loc.at}</td>
+            <td>${loc.lat}</td>
+            <td>${loc.lon}</td>
+            <td>${loc.accuracy ?? '-'}</td>
+            <td>${loc.ip ?? '-'}</td>
+            <td>${loc.ua ?? '-'}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="6">Failed to load data.</td></tr>';
+      }
+    }
+
+    refreshBtn.addEventListener('click', loadData);
+    loadData();
+  </script>
+</body>
+</html>
